@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EstudosDash · Dashboard de Estudos</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --card:#fff; --ink:#18181b; --muted:#71717a; --line:#e4e4e7;
+    --accent:#4f46e5; --ok:#16a34a; --warn:#d97706;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 20px 80px}
+  header h1{font-size:26px;margin:0;font-weight:800;letter-spacing:-.01em}
+  header p{color:var(--muted);margin:6px 0 0}
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 28px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;min-width:120px}
+  .stat .n{font-size:24px;font-weight:800}
+  .stat .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  .group{margin-bottom:26px}
+  .group h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+    margin:0 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;transition:.15s}
+  .item:hover{border-color:#c7c7cc;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .item .name{font-weight:600;margin-bottom:8px}
+  .item .name a{color:var(--ink);text-decoration:none}
+  .item .name a:hover{color:var(--accent)}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;
+    background:#eef2ff;color:var(--accent)}
+  .bar{height:6px;background:var(--line);border-radius:999px;margin-top:10px;overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--ok);border-radius:999px}
+  .bar-label{font-size:11px;color:var(--muted);margin-top:4px}
+  .msg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;color:var(--muted);line-height:1.6}
+  .msg code{background:#f1f1ef;padding:1px 6px;border-radius:4px;color:var(--ink)}
+  footer{color:var(--muted);font-size:12px;margin-top:36px}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📚 EstudosDash</h1>
+    <p>Dashboard de estudos e matérias, conectado ao seu Notion.</p>
+  </header>
+
+  <div id="stats" class="stats" hidden></div>
+  <div id="content"></div>
+
+  <footer>
+    Projeto open source em C# / .NET · <a href="https://github.com/davievan12">github.com/davievan12</a>
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+async function load(){
+  try{
+    const r = await fetch('/api/subjects');
+    const d = await r.json();
+    if(d.error){ return msg(`⚠️ Erro ao consultar o Notion: <code>${esc(d.error)}</code>`); }
+    if(d.configured === false){ return notConfigured(d.message); }
+    render(d.subjects || []);
+  }catch(e){ msg('⚠️ Não consegui falar com a API: '+esc(e.message)); }
+}
+
+function msg(html){ $('#content').innerHTML = `<div class="msg">${html}</div>`; }
+
+function notConfigured(){
+  msg(`Ainda não conectei ao Notion. Configure o token e a database:
+    <br><br>1. Crie uma integração em <code>notion.so/my-integrations</code> e compartilhe sua database com ela.
+    <br>2. Defina as variáveis <code>Notion__Token</code> e <code>Notion__DatabaseId</code>
+    (ou preencha <code>appsettings.Local.json</code>).
+    <br>3. Reinicie o app. Detalhes no README.`);
+}
+
+function render(subjects){
+  if(!subjects.length) return msg('Nenhuma matéria encontrada na database. 🤔');
+
+  // estatísticas
+  const total = subjects.length;
+  const withProg = subjects.filter(s=>s.progress!=null);
+  const avg = withProg.length ? Math.round(withProg.reduce((a,s)=>a+s.progress,0)/withProg.length) : null;
+  const done = subjects.filter(s=>/conclu|feito|done|pronto/i.test(s.status||'')).length;
+  const stats = [
+    ['Matérias', total],
+    ['Concluídas', done],
+    ['Progresso médio', avg==null?'—':avg+'%'],
+  ];
+  $('#stats').hidden = false;
+  $('#stats').innerHTML = stats.map(([l,n])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+  // agrupa por categoria
+  const groups = {};
+  for(const s of subjects){ const k = s.category || 'Sem categoria'; (groups[k] ||= []).push(s); }
+
+  $('#content').innerHTML = Object.entries(groups).map(([cat, items]) => `
+    <div class="group">
+      <h2>${esc(cat)} · ${items.length}</h2>
+      <div class="grid">
+        ${items.map(card).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function card(s){
+  const name = s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noreferrer">${esc(s.name)}</a>` : esc(s.name);
+  const badge = s.status ? `<span class="badge">${esc(s.status)}</span>` : '';
+  const bar = s.progress!=null ? `
+    <div class="bar"><i style="width:${Math.max(0,Math.min(100,s.progress))}%"></i></div>
+    <div class="bar-label">${Math.round(s.progress)}%</div>` : '';
+  return `<div class="item"><div class="name">${name}</div>${badge}${bar}</div>`;
+}
+
+load();
+</script>
+</body>
+</html>

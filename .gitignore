@@ -1,0 +1,14 @@
+# Build
+bin/
+obj/
+*.user
+
+# Segredos locais — NUNCA versionar
+appsettings.Local.json
+.env
+*.env
+
+# IDE / OS
+.vs/
+.idea/
+.DS_Store

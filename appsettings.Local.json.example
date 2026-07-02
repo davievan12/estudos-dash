@@ -1,0 +1,10 @@
+{
+  "_comentario": "Copie este arquivo para 'appsettings.Local.json' (que é gitignored) e preencha. Ou use variáveis de ambiente Notion__Token / Notion__DatabaseId.",
+  "Notion": {
+    "Token": "secret_xxx_sua_integration_token_do_notion",
+    "DatabaseId": "id_da_sua_database_de_estudos",
+    "StatusProperty": "Status",
+    "CategoryProperty": "Matéria",
+    "ProgressProperty": "Progresso"
+  }
+}

@@ -7,13 +7,22 @@ projeto pessoal — código aberto, dados privados (o token do Notion fica só n
 ## O que faz
 - Consome a **API do Notion** (uma database de estudos sua) via `HttpClient`.
 - Expõe uma **API REST** própria (`/api/subjects`, `/api/health`).
-- Serve um **dashboard** (HTML/CSS/JS) que agrupa as matérias por categoria e mostra status + barra de progresso.
+- Serve um **dashboard em React** que agrupa as matérias por categoria e mostra status + barra de progresso,
+  com uma identidade visual de "caderno de estudos" (marca-texto, fundo pontilhado).
 
 ## Stack
-- **.NET 10 / ASP.NET Core** (Minimal API)
-- `HttpClient` tipado + injeção de dependência
-- `System.Text.Json` para o parsing do Notion
-- Arquitetura simples com interface (`INotionClient`) + implementação — fácil de testar e trocar.
+- **Back-end:** .NET 10 / ASP.NET Core (Minimal API), `HttpClient` tipado + injeção de dependência,
+  `System.Text.Json`. Arquitetura com interface (`INotionClient`) + implementação — fácil de testar e trocar.
+- **Front-end:** React + Vite (em `client/`). O build sai para `wwwroot/` e é servido pela própria API.
+
+## Front-end (React)
+```bash
+cd client
+npm install
+npm run dev      # dev server com proxy de /api -> :5099
+npm run build    # build de produção -> ../wwwroot (servido pelo .NET)
+```
+Em produção, basta o `dotnet run` (o front já buildado está em `wwwroot/`).
 
 ## Como rodar
 
